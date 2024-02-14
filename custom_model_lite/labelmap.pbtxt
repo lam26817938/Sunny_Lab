@@ -1,5 +1,10 @@
 item {
-    name: "0",
+    name: "microplastic",
     id: 1,
-    display_name: "0"
+    display_name: "microplastic"
+}
+item {
+    name: "plastic-bottle",
+    id: 2,
+    display_name: "plastic-bottle"
 }
