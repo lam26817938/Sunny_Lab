@@ -46,7 +46,7 @@ stereoMapR_y = cv_file.getNode("StereoMapR_y").mat()
 
 cv_file.release()
 CWD_PATH = os.getcwd()
-MODEL_NAME='custom_model_lite2'
+MODEL_NAME='custom_model_lite4'
 GRAPH_NAME='detect.tflite'
 LABELMAP_NAME='labelmap.txt'
 PATH_TO_CKPT = os.path.join(CWD_PATH, MODEL_NAME, GRAPH_NAME)
@@ -57,7 +57,7 @@ imW, imH = 640, 480
 # Camera parameters (these need to be adjusted based on your setup)
 focal_length =  8 # Your camera's focal length
 baseline = 5 # The physical distance between cameras
-alpha = 56.6        #Camera field of view in the horisontal plane [degrees]
+alpha = 69        #Camera field of view in the horisontal plane [degrees]
 
 with open(PATH_TO_LABELS, 'r') as f:
     labels = [line.strip() for line in f.readlines()]
@@ -76,8 +76,7 @@ floating_model = (input_details[0]['dtype'] == np.float32)
 input_mean = 127.5
 input_std = 127.5
 
-c_x,c_y=320,240
-
+num=0
 # Open both cameras
 cap_left = cv.VideoCapture(0, cv.CAP_DSHOW)  # Adjust the index to match your left camera
 cap_right = cv.VideoCapture(1, cv.CAP_DSHOW)  # Adjust the index to match your right camera
@@ -111,7 +110,7 @@ while cap_left.isOpened() and cap_right.isOpened():
 
         # 假设左右图像都检测到了对象，你需要根据实际情况进行调整
         for i in range(len(scores)):
-            if scores[i] > 0.2:
+            if scores[i] > 0.1:
                 ymin, xmin, ymax, xmax = boxes[i]
                 xmin = int(max(0, xmin * imW))
                 xmax = int(min(imW, xmax * imW))
@@ -119,9 +118,9 @@ while cap_left.isOpened() and cap_right.isOpened():
                 ymax = int(min(imH, ymax * imH))
                 
                 if side=='left':
-                    circle_left=(xmin + xmax / 2, ymin + ymax / 2)
+                    circle_left=((xmin + xmax) / 2, (ymin + ymax) / 2)
                 else:
-                    circle_right=(xmin + xmax / 2, ymin + ymax / 2)
+                    circle_right=((xmin + xmax) / 2, (ymin + ymax) / 2)
                     
                 cv.rectangle(frame_rectified, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
 
@@ -132,13 +131,14 @@ while cap_left.isOpened() and cap_right.isOpened():
 
 
     if circle_left and circle_right:
-        depth = find_depth(circle_left, circle_right, frame_right, frame_left, baseline, focal_length, alpha)
+        depth = find_depth(circle_left, circle_right, frame_right_rectified, frame_left_rectified, baseline, focal_length, alpha)
 
         u, v = circle_left
         
+        print(u,v)
         pixel_size = 2 * depth * np.tan(np.radians(alpha / 2)) / width
-        x = (u - c_x) * pixel_size
-        y = (v - c_y) * pixel_size
+        x = (u - 320) * pixel_size
+        y = (v - 240) * pixel_size
         z = round(depth, 1)
         coords_text = f"Coords: ({x:.1f}, {y:.1f}, {z:.1f})"
 
@@ -151,8 +151,12 @@ while cap_left.isOpened() and cap_right.isOpened():
     cv.imshow("Frame Left", frame_left_rectified)
     cv.imshow("Frame Right", frame_right_rectified)
     
-    
-
+    k = cv.waitKey(5)
+    if k == ord('s'): # wait for 's' key to save and exit
+        cv.imwrite('CameraCalibration-main/test/LC/img' + str(num) + '.png', frame_left_rectified)
+        cv.imwrite('CameraCalibration-main/test/RC/img' + str(num) + '.png', frame_right_rectified)
+        print("image saved!")
+        num += 1
 
     # Wait for the 'q' key to exit the loop
     if cv.waitKey(1) & 0xFF == ord('q'):
