@@ -1,8 +1,7 @@
 import numpy as np
 import cv2 as cv
-import os
+import os, time
 from tensorflow.lite.python.interpreter import Interpreter
-from matplotlib import pyplot as plt
 import pprint
 
 
@@ -78,9 +77,10 @@ input_std = 127.5
 
 num=0
 # Open both cameras
-cap_left = cv.VideoCapture(0, cv.CAP_DSHOW)  # Adjust the index to match your left camera
-cap_right = cv.VideoCapture(1, cv.CAP_DSHOW)  # Adjust the index to match your right camera
-
+#cap_left = cv.VideoCapture(2, cv.CAP_DSHOW)  # Adjust the index to match your left camera
+#cap_right = cv.VideoCapture(0, cv.CAP_DSHOW)  # Adjust the index to match your right camera
+cap_left = cv.VideoCapture(0)  # Adjust the index to match your left camera
+cap_right = cv.VideoCapture(2)  # Adjust the index to match your right camera
 while cap_left.isOpened() and cap_right.isOpened():
     success_left, frame_left = cap_left.read()
     success_right, frame_right = cap_right.read()

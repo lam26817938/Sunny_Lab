@@ -7,3 +7,9 @@ models/
 tflite2/
 tflite1/
 tflitexmaple/
+bin/
+lib/
+lib
+lib64/
+lib64
+pyvenv.cfg
