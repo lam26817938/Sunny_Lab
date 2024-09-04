@@ -1,8 +1,12 @@
 import cv2
 import os
 
-cap1 = cv2.VideoCapture(0)
-cap2 = cv2.VideoCapture(2)
+cap1 = cv2.VideoCapture(1)
+cap2 = cv2.VideoCapture(0)
+cap1.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap1.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+cap2.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap2.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
 num = 0
 print(os.getcwd())

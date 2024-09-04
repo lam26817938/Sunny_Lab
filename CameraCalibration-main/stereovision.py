@@ -2,8 +2,7 @@ import numpy as np
 import cv2 as cv
 import os, time
 from tensorflow.lite.python.interpreter import Interpreter
-import pprint
-
+import pickle
 
 
 
@@ -35,15 +34,36 @@ def find_depth(circle_right, circle_left, frame_right, frame_left, baseline,f, a
 
 
 # Open the XML file with stereo rectification maps
-cv_file = cv.FileStorage("CameraCalibration-main/StereoMap.xml", cv.FILE_STORAGE_READ)
+# cv_file = cv.FileStorage("CameraCalibration-main/StereoMap_480p.xml", cv.FILE_STORAGE_READ)
 
-# Read the stereo rectification maps
-stereoMapL_x = cv_file.getNode("StereoMapL_x").mat()
-stereoMapL_y = cv_file.getNode("StereoMapL_y").mat()
-stereoMapR_x = cv_file.getNode("StereoMapR_x").mat()
-stereoMapR_y = cv_file.getNode("StereoMapR_y").mat()
+# # Read the stereo rectification maps
+# mapLx = cv_file.getNode("StereoMapL_x").mat()
+# mapLy = cv_file.getNode("StereoMapL_y").mat()
+# mapRx = cv_file.getNode("StereoMapR_x").mat()
+# mapRy = cv_file.getNode("StereoMapR_y").mat()
 
-cv_file.release()
+# with open('stereo_calibration_data.pkl', 'rb') as f:
+#     calibration_data = pickle.load(f)
+
+# 或者使用numpy加載
+calibration_data = np.load('CameraCalibration-main/stereo_calibration_data.npz')
+
+cameraMatrixL = calibration_data['cameraMatrixL']
+distCoeffsL = calibration_data['distCoeffsL']
+cameraMatrixR = calibration_data['cameraMatrixR']
+distCoeffsR = calibration_data['distCoeffsR']
+R = calibration_data['R']
+T = calibration_data['T']
+R1 = calibration_data['R1']
+R2 = calibration_data['R2']
+P1 = calibration_data['P1']
+P2 = calibration_data['P2']
+Q = calibration_data['Q']
+
+# 計算重映射表
+mapLx, mapLy = cv.initUndistortRectifyMap(cameraMatrixL, distCoeffsL, R1, P1, (640, 360), cv.CV_32FC1)
+mapRx, mapRy = cv.initUndistortRectifyMap(cameraMatrixR, distCoeffsR, R2, P2, (640, 360), cv.CV_32FC1)
+
 CWD_PATH = os.getcwd()
 MODEL_NAME='custom_model_lite4'
 GRAPH_NAME='detect.tflite'
@@ -51,7 +71,7 @@ LABELMAP_NAME='labelmap.txt'
 PATH_TO_CKPT = os.path.join(CWD_PATH, MODEL_NAME, GRAPH_NAME)
 PATH_TO_LABELS = os.path.join(CWD_PATH, MODEL_NAME, LABELMAP_NAME)
 
-imW, imH = 640, 480
+imW, imH = 640, 360
 
 # Camera parameters (these need to be adjusted based on your setup)
 focal_length =  8 # Your camera's focal length
@@ -79,15 +99,18 @@ num=0
 # Open both cameras
 #cap_left = cv.VideoCapture(2, cv.CAP_DSHOW)  # Adjust the index to match your left camera
 #cap_right = cv.VideoCapture(0, cv.CAP_DSHOW)  # Adjust the index to match your right camera
-cap_left = cv.VideoCapture(2)  # Adjust the index to match your left camera
+cap_left = cv.VideoCapture(1)  # Adjust the index to match your left camera
 cap_right = cv.VideoCapture(0)  # Adjust the index to match your right camera
+cap_left.set(cv.CAP_PROP_FRAME_WIDTH, imW)
+cap_left.set(cv.CAP_PROP_FRAME_HEIGHT, imH)
+cap_right.set(cv.CAP_PROP_FRAME_WIDTH, imW)
+cap_right.set(cv.CAP_PROP_FRAME_HEIGHT, imH)
 while cap_left.isOpened() and cap_right.isOpened():
     success_left, frame_left = cap_left.read()
     success_right, frame_right = cap_right.read()
-
     # Undistort and rectify images using the stereo rectification maps
-    frame_left_rectified = cv.remap(frame_left, stereoMapL_x, stereoMapL_y, cv.INTER_LINEAR)
-    frame_right_rectified = cv.remap(frame_right, stereoMapR_x, stereoMapR_y, cv.INTER_LINEAR)
+    frame_left_rectified = cv.remap(frame_left, mapLx, mapLy, cv.INTER_LINEAR)
+    frame_right_rectified = cv.remap(frame_right, mapRx, mapRy, cv.INTER_LINEAR)
     
     circle_left=None
     circle_right=None
@@ -137,8 +160,8 @@ while cap_left.isOpened() and cap_right.isOpened():
         
         print(u,v)
         pixel_size = 2 * depth * np.tan(np.radians(alpha / 2)) / width
-        x = (u - 320) * pixel_size
-        y = (v - 240) * pixel_size
+        x = (u - (imW/2)) * pixel_size
+        y = -(v - (imH/2)) * pixel_size + 16
         z = round(depth, 1)
         coords_text = f"Coords: ({x:.1f}, {y:.1f}, {z:.1f})"
 

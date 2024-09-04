@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-video_capture = cv2.VideoCapture(2)
+video_capture = cv2.VideoCapture(1)
 video_capture2 = cv2.VideoCapture(0)
 
 
