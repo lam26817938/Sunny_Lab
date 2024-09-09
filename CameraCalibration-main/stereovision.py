@@ -96,6 +96,7 @@ input_mean = 127.5
 input_std = 127.5
 
 num=0
+last_print_time=0
 # Open both cameras
 #cap_left = cv.VideoCapture(2, cv.CAP_DSHOW)  # Adjust the index to match your left camera
 #cap_right = cv.VideoCapture(0, cv.CAP_DSHOW)  # Adjust the index to match your right camera
@@ -112,8 +113,9 @@ while cap_left.isOpened() and cap_right.isOpened():
     frame_left_rectified = cv.remap(frame_left, mapLx, mapLy, cv.INTER_LINEAR)
     frame_right_rectified = cv.remap(frame_right, mapRx, mapRy, cv.INTER_LINEAR)
     
-    circle_left=None
-    circle_right=None
+
+    circles_left = [] 
+    circles_right = []
     
     for side, frame_rectified in [('left', frame_left_rectified), ('right', frame_right_rectified)]:
         frame_rgb = cv.cvtColor(frame_rectified, cv.COLOR_BGR2RGB)
@@ -135,40 +137,63 @@ while cap_left.isOpened() and cap_right.isOpened():
         for i in range(len(scores)):
             if scores[i] > 0.1:
                 ymin, xmin, ymax, xmax = boxes[i]
-                xmin = int(max(0, xmin * imW))
-                xmax = int(min(imW, xmax * imW))
-                ymin = int(max(0, ymin * imH))
-                ymax = int(min(imH, ymax * imH))
+                dxmin = int(max(0, xmin * imW))
+                dxmax = int(min(imW, xmax * imW))
+                dymin = int(max(0, ymin * imH))
+                dymax = int(min(imH, ymax * imH))
                 
-                if side=='left':
-                    circle_left=((xmin + xmax) / 2, (ymin + ymax) / 2)
+                if side == 'left':
+                    circles_left.append(((dxmin + dxmax) / 2, (dymin + dymax) / 2))
                 else:
-                    circle_right=((xmin + xmax) / 2, (ymin + ymax) / 2)
+                    circles_right.append(((dxmin + dxmax) / 2, (dymin + dymax) / 2))
                     
-                cv.rectangle(frame_rectified, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
+                cv.rectangle(frame_rectified, (dxmin, dymin), (dxmax, dymax), (0, 255, 0), 2)
 
                 object_name = labels[int(classes[i])]
                 confidence = int(scores[i] * 100)
                 label = f"{object_name}: {confidence}%"
-                cv.putText(frame_rectified, label, (xmin, ymin-15), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv.putText(frame_rectified, label, (dxmin, dymin-15), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
+        point_counter = 1 
+        current_time = time.time()
+        if current_time - last_print_time >= 1.5:
+            timeprint=True
+            
+        if circles_left and circles_right:
+            first_match_displayed = False  # A flag to ensure only the first match is displayed
+            for i in range(len(circles_left)-1, -1, -1): 
+                left_circle = circles_left[i]
+                for j in range(len(circles_right)-1, -1, -1): 
+                    right_circle = circles_right[j]
+                    
+                    confidence_left = scores[i] * 100
+                    confidence_right = scores[j] * 100
+                    if abs(confidence_left - confidence_right) < 5:
+                        depth = find_depth(left_circle, right_circle, frame_right_rectified, frame_left_rectified, baseline, focal_length, alpha)
 
-    if circle_left and circle_right:
-        depth = find_depth(circle_left, circle_right, frame_right_rectified, frame_left_rectified, baseline, focal_length, alpha)
+                        u, v = left_circle
+                        pixel_size = 2 * depth * np.tan(np.radians(alpha / 2)) / width
+                        x = (u - (imW/2)) * pixel_size
+                        y = -(v - (imH/2)) * pixel_size + 16
+                        z = round(depth, 1)
+                        coords_text = f"Coords: ({x:.1f}, {y:.1f}, {z:.1f})"
 
-        u, v = circle_left
-        
-        print(u,v)
-        pixel_size = 2 * depth * np.tan(np.radians(alpha / 2)) / width
-        x = (u - (imW/2)) * pixel_size
-        y = -(v - (imH/2)) * pixel_size + 16
-        z = round(depth, 1)
-        coords_text = f"Coords: ({x:.1f}, {y:.1f}, {z:.1f})"
+                        # Display the first match on the image
+                        if not first_match_displayed:
+                            cv.putText(frame_left_rectified, coords_text, (50,50), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                            cv.putText(frame_right_rectified, coords_text, (50,50), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                            first_match_displayed = True  # Set the flag to true after displaying the first match
 
-        cv.putText(frame_left_rectified, coords_text, (50,50), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        cv.putText(frame_right_rectified, coords_text, (50,50), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        # Multiply computer value with 205.8 to get real-life depth in [cm]. The factor was found manually.
-     #   print("Depth: ", str(round(depth,1)))
+                        if timeprint:
+                            print(f"Point {point_counter}: Coords: ({x:.1f}, {y:.1f}, {z:.1f}), Confidence Left: {confidence_left:.1f}%, Confidence Right: {confidence_right:.1f}%")
+                            last_print_time = current_time  
+                            point_counter += 1
+
+                        # Pop掉已经处理的目标，避免重复
+                        circles_left.pop(i)
+                        circles_right.pop(j)
+                        break  # 跳出内循环，处理下一个左边的目标
+            timeprint = False
 
 
     cv.imshow("Frame Left", frame_left_rectified)
