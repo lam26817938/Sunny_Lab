@@ -45,7 +45,6 @@ def find_depth(circle_right, circle_left, frame_right, frame_left, baseline,f, a
 # with open('stereo_calibration_data.pkl', 'rb') as f:
 #     calibration_data = pickle.load(f)
 
-# 或者使用numpy加載
 calibration_data = np.load('CameraCalibration-main/stereo_calibration_data.npz')
 
 cameraMatrixL = calibration_data['cameraMatrixL']
@@ -60,7 +59,6 @@ P1 = calibration_data['P1']
 P2 = calibration_data['P2']
 Q = calibration_data['Q']
 
-# 計算重映射表
 mapLx, mapLy = cv.initUndistortRectifyMap(cameraMatrixL, distCoeffsL, R1, P1, (640, 360), cv.CV_32FC1)
 mapRx, mapRy = cv.initUndistortRectifyMap(cameraMatrixR, distCoeffsR, R2, P2, (640, 360), cv.CV_32FC1)
 
@@ -128,12 +126,11 @@ while cap_left.isOpened() and cap_right.isOpened():
         interpreter.set_tensor(input_details[0]['index'], input_data)
         interpreter.invoke()
 
-        # 解析检测结果
+       
         boxes = interpreter.get_tensor(output_details[1]['index'])[0]  # Bounding box
         classes = interpreter.get_tensor(output_details[3]['index'])[0]  # Class index
         scores = interpreter.get_tensor(output_details[0]['index'])[0]  # Confidence
-
-        # 假设左右图像都检测到了对象，你需要根据实际情况进行调整
+        
         for i in range(len(scores)):
             if scores[i] > 0.1:
                 ymin, xmin, ymax, xmax = boxes[i]
@@ -189,10 +186,10 @@ while cap_left.isOpened() and cap_right.isOpened():
                             last_print_time = current_time  
                             point_counter += 1
 
-                        # Pop掉已经处理的目标，避免重复
+                        
                         circles_left.pop(i)
                         circles_right.pop(j)
-                        break  # 跳出内循环，处理下一个左边的目标
+                        break  
             timeprint = False
 
 
