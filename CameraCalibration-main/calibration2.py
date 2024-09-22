@@ -85,7 +85,7 @@ calibration_data = {
 #     pickle.dump(calibration_data, f)
 
 # 使用numpy保存
-np.savez('CameraCalibration-main/stereo_calibration_data.npz',
+np.savez('CameraCalibration-main/stereo_calibration_data_720.npz',
          cameraMatrixL=cameraMatrixL,
          distCoeffsL=distCoeffsL,
          cameraMatrixR=cameraMatrixR,

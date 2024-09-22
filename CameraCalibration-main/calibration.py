@@ -87,7 +87,7 @@ cv.waitKey(0)
 
 # Save the stereo maps
 print("saving")
-cvfile = cv.FileStorage("CameraCalibration-main/StereoMap_480p.xml", cv.FILE_STORAGE_WRITE)
+cvfile = cv.FileStorage("CameraCalibration-main/StereoMap_720p.xml", cv.FILE_STORAGE_WRITE)
 cvfile.write("StereoMapL_x", mapLx)
 cvfile.write("StereoMapL_y", mapLy)
 cvfile.write("StereoMapR_x", mapRx)

@@ -45,7 +45,7 @@ def find_depth(circle_right, circle_left, frame_right, frame_left, baseline,f, a
 # with open('stereo_calibration_data.pkl', 'rb') as f:
 #     calibration_data = pickle.load(f)
 
-calibration_data = np.load('CameraCalibration-main/stereo_calibration_data.npz')
+calibration_data = np.load('CameraCalibration-main/stereo_calibration_data_720.npz')
 
 cameraMatrixL = calibration_data['cameraMatrixL']
 distCoeffsL = calibration_data['distCoeffsL']
@@ -59,17 +59,19 @@ P1 = calibration_data['P1']
 P2 = calibration_data['P2']
 Q = calibration_data['Q']
 
-mapLx, mapLy = cv.initUndistortRectifyMap(cameraMatrixL, distCoeffsL, R1, P1, (640, 360), cv.CV_32FC1)
-mapRx, mapRy = cv.initUndistortRectifyMap(cameraMatrixR, distCoeffsR, R2, P2, (640, 360), cv.CV_32FC1)
+
 
 CWD_PATH = os.getcwd()
-MODEL_NAME='custom_model_lite4'
+MODEL_NAME='custom_model_lite7'
 GRAPH_NAME='detect.tflite'
 LABELMAP_NAME='labelmap.txt'
 PATH_TO_CKPT = os.path.join(CWD_PATH, MODEL_NAME, GRAPH_NAME)
 PATH_TO_LABELS = os.path.join(CWD_PATH, MODEL_NAME, LABELMAP_NAME)
 
-imW, imH = 640, 360
+imW, imH = 1280, 720
+
+mapLx, mapLy = cv.initUndistortRectifyMap(cameraMatrixL, distCoeffsL, R1, P1, (imW, imH), cv.CV_32FC1)
+mapRx, mapRy = cv.initUndistortRectifyMap(cameraMatrixR, distCoeffsR, R2, P2, (imW, imH), cv.CV_32FC1)
 
 # Camera parameters (these need to be adjusted based on your setup)
 focal_length =  8 # Your camera's focal length
@@ -98,8 +100,8 @@ last_print_time=0
 # Open both cameras
 #cap_left = cv.VideoCapture(2, cv.CAP_DSHOW)  # Adjust the index to match your left camera
 #cap_right = cv.VideoCapture(0, cv.CAP_DSHOW)  # Adjust the index to match your right camera
-cap_left = cv.VideoCapture(1)  # Adjust the index to match your left camera
-cap_right = cv.VideoCapture(0)  # Adjust the index to match your right camera
+cap_left = cv.VideoCapture(0)  # Adjust the index to match your left camera
+cap_right = cv.VideoCapture(1)  # Adjust the index to match your right camera
 cap_left.set(cv.CAP_PROP_FRAME_WIDTH, imW)
 cap_left.set(cv.CAP_PROP_FRAME_HEIGHT, imH)
 cap_right.set(cv.CAP_PROP_FRAME_WIDTH, imW)
@@ -111,9 +113,15 @@ while cap_left.isOpened() and cap_right.isOpened():
     frame_left_rectified = cv.remap(frame_left, mapLx, mapLy, cv.INTER_LINEAR)
     frame_right_rectified = cv.remap(frame_right, mapRx, mapRy, cv.INTER_LINEAR)
     
+    # x_offset = (imW - imH) // 2
+    # frame_left_cropped = frame_left_rectified[0:imH, x_offset:x_offset + imH]
+    # frame_right_cropped = frame_right_rectified[0:imH, x_offset:x_offset + imH]
+    
 
     circles_left = [] 
     circles_right = []
+    scores_left = []
+    scores_right = []
     
     for side, frame_rectified in [('left', frame_left_rectified), ('right', frame_right_rectified)]:
         frame_rgb = cv.cvtColor(frame_rectified, cv.COLOR_BGR2RGB)
@@ -141,8 +149,10 @@ while cap_left.isOpened() and cap_right.isOpened():
                 
                 if side == 'left':
                     circles_left.append(((dxmin + dxmax) / 2, (dymin + dymax) / 2))
+                    scores_left.append(scores[i])
                 else:
                     circles_right.append(((dxmin + dxmax) / 2, (dymin + dymax) / 2))
+                    scores_right.append(scores[i])
                     
                 cv.rectangle(frame_rectified, (dxmin, dymin), (dxmax, dymax), (0, 255, 0), 2)
 
@@ -163,8 +173,8 @@ while cap_left.isOpened() and cap_right.isOpened():
                 for j in range(len(circles_right)-1, -1, -1): 
                     right_circle = circles_right[j]
                     
-                    confidence_left = scores[i] * 100
-                    confidence_right = scores[j] * 100
+                    confidence_left = scores_left[i] * 100
+                    confidence_right = scores_right[j] * 100
                     if abs(confidence_left - confidence_right) < 5:
                         depth = find_depth(left_circle, right_circle, frame_right_rectified, frame_left_rectified, baseline, focal_length, alpha)
 
