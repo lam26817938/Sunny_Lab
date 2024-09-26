@@ -3,7 +3,7 @@ import cv2 as cv
 import glob
 
 chessboardSize = (9,6)
-frameSize720p = (640, 480)  # 直接使用720p分辨率
+frameSize720p = (640, 360)
 
 # termination criteria
 criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -80,14 +80,14 @@ undistortedL = cv.remap(imgL, mapLx, mapLy, cv.INTER_LINEAR)
 undistortedR = cv.remap(imgR, mapRx, mapRy, cv.INTER_LINEAR)
 
 # Display the undistorted and rectified images
-cv.imshow('Undistorted and Rectified Left Image (720p)', undistortedL)
-cv.imshow('Undistorted and Rectified Right Image (720p)', undistortedR)
+cv.imshow('Undistorted and Rectified Left Image', undistortedL)
+cv.imshow('Undistorted and Rectified Right Image', undistortedR)
 
 cv.waitKey(0)
 
 # Save the stereo maps
 print("saving")
-cvfile = cv.FileStorage("CameraCalibration-main/StereoMap_720p.xml", cv.FILE_STORAGE_WRITE)
+cvfile = cv.FileStorage("CameraCalibration-main/StereoMap_360p.xml", cv.FILE_STORAGE_WRITE)
 cvfile.write("StereoMapL_x", mapLx)
 cvfile.write("StereoMapL_y", mapLy)
 cvfile.write("StereoMapR_x", mapRx)

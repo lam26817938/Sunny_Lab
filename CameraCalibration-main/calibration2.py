@@ -10,9 +10,9 @@ objp = np.zeros((chessboard_size[0] * chessboard_size[1], 3), np.float32)
 objp[:, :2] = np.mgrid[0:chessboard_size[0], 0:chessboard_size[1]].T.reshape(-1, 2)
 
 # 存儲棋盤格角點的物理坐標和像素坐標
-objpoints = []  # 3D點在世界坐標系中的坐標
-imgpointsL = []  # 2D點在左相機圖像平面中的坐標
-imgpointsR = []  # 2D點在右相機圖像平面中的坐標
+objpoints = []
+imgpointsL = []
+imgpointsR = []
 
 # 加載校正圖像
 images_left = glob.glob('CameraCalibration-main/images/LC/*.png')
@@ -60,8 +60,8 @@ undistortedL = cv2.remap(imgL, mapLx, mapLy, cv2.INTER_LINEAR)
 undistortedR = cv2.remap(imgR, mapRx, mapRy, cv2.INTER_LINEAR)
 
 # Display the undistorted and rectified images
-cv2.imshow('Undistorted and Rectified Left Image (720p)', undistortedL)
-cv2.imshow('Undistorted and Rectified Right Image (720p)', undistortedR)
+cv2.imshow('Undistorted and Rectified Left Image', undistortedL)
+cv2.imshow('Undistorted and Rectified Right Image', undistortedR)
 
 cv2.waitKey(0)
 
@@ -85,7 +85,7 @@ calibration_data = {
 #     pickle.dump(calibration_data, f)
 
 # 使用numpy保存
-np.savez('CameraCalibration-main/stereo_calibration_data_720.npz',
+np.savez('CameraCalibration-main/stereo_calibration_data_360.npz',
          cameraMatrixL=cameraMatrixL,
          distCoeffsL=distCoeffsL,
          cameraMatrixR=cameraMatrixR,
