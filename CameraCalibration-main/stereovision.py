@@ -62,7 +62,7 @@ Q = calibration_data['Q']
 
 
 CWD_PATH = os.getcwd()
-MODEL_NAME='custom_model_lite7'
+MODEL_NAME='custom_model_lite'
 GRAPH_NAME='detect.tflite'
 LABELMAP_NAME='labelmap.txt'
 PATH_TO_CKPT = os.path.join(CWD_PATH, MODEL_NAME, GRAPH_NAME)
@@ -100,8 +100,8 @@ last_print_time=0
 # Open both cameras
 #cap_left = cv.VideoCapture(2, cv.CAP_DSHOW)  # Adjust the index to match your left camera
 #cap_right = cv.VideoCapture(0, cv.CAP_DSHOW)  # Adjust the index to match your right camera
-cap_left = cv.VideoCapture(0)  # Adjust the index to match your left camera
-cap_right = cv.VideoCapture(1)  # Adjust the index to match your right camera
+cap_left = cv.VideoCapture(1)  # Adjust the index to match your left camera
+cap_right = cv.VideoCapture(0)  # Adjust the index to match your right camera
 cap_left.set(cv.CAP_PROP_FRAME_WIDTH, imW)
 cap_left.set(cv.CAP_PROP_FRAME_HEIGHT, imH)
 cap_right.set(cv.CAP_PROP_FRAME_WIDTH, imW)
@@ -140,7 +140,7 @@ while cap_left.isOpened() and cap_right.isOpened():
         scores = interpreter.get_tensor(output_details[0]['index'])[0]  # Confidence
         
         for i in range(len(scores)):
-            if scores[i] > 0.1:
+            if scores[i] > 0.15:
                 ymin, xmin, ymax, xmax = boxes[i]
                 dxmin = int(max(0, xmin * imW))
                 dxmax = int(min(imW, xmax * imW))
@@ -175,12 +175,14 @@ while cap_left.isOpened() and cap_right.isOpened():
                     
                     confidence_left = scores_left[i] * 100
                     confidence_right = scores_right[j] * 100
-                    if abs(confidence_left - confidence_right) < 5:
+                    
+                    if abs(confidence_left - confidence_right) < 20:
+                        
                         depth = find_depth(left_circle, right_circle, frame_right_rectified, frame_left_rectified, baseline, focal_length, alpha)
 
                         u, v = left_circle
                         pixel_size = 2 * depth * np.tan(np.radians(alpha / 2)) / width
-                        x = (u - (imW/2)) * pixel_size
+                        x = (u - (imW/2)) * pixel_size - 22
                         y = -(v - (imH/2)) * pixel_size + 16
                         z = round(depth, 1)
                         coords_text = f"Coords: ({x:.1f}, {y:.1f}, {z:.1f})"
