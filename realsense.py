@@ -2,14 +2,25 @@ import pyrealsense2 as rs
 import numpy as np
 import cv2
 
+
+imW, imH = 1280, 720
+
+
 # Configure depth and color streams
 pipeline = rs.pipeline()
 config = rs.config()
-config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+config.enable_stream(rs.stream.depth, imW, imH, rs.format.z16, 6)
+config.enable_stream(rs.stream.color, imW, imH, rs.format.bgr8, 6)
 
 # Start streaming
 pipeline.start(config)
+
+# Callback function for mouse click
+def mouse_callback(event, x, y, flags, param):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        # Get the depth value at the clicked point
+        depth_value = depth_frame.get_distance(x, y)
+        print(f"Depth at ({x}, {y}): {depth_value:.3f} meters")
 
 try:
     while True:
@@ -32,6 +43,9 @@ try:
 
         # Display the images
         cv2.imshow('RealSense', images)
+
+        # Set the mouse callback function
+        cv2.setMouseCallback('RealSense', mouse_callback)
 
         # Press 'q' to exit
         if cv2.waitKey(1) & 0xFF == ord('q'):
