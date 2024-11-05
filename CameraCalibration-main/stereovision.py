@@ -106,6 +106,11 @@ cap_left.set(cv.CAP_PROP_FRAME_WIDTH, imW)
 cap_left.set(cv.CAP_PROP_FRAME_HEIGHT, imH)
 cap_right.set(cv.CAP_PROP_FRAME_WIDTH, imW)
 cap_right.set(cv.CAP_PROP_FRAME_HEIGHT, imH)
+
+recording = False
+out = None
+last_coords_texts = []
+
 while cap_left.isOpened() and cap_right.isOpened():
     success_left, frame_left = cap_left.read()
     success_right, frame_right = cap_right.read()
@@ -167,48 +172,78 @@ while cap_left.isOpened() and cap_right.isOpened():
             timeprint=True
             
         if circles_left and circles_right:
-            first_match_displayed = False  # A flag to ensure only the first match is displayed
-            for i in range(len(circles_left)-1, -1, -1): 
-                left_circle = circles_left[i]
-                for j in range(len(circles_right)-1, -1, -1): 
-                    right_circle = circles_right[j]
-                    
-                    confidence_left = scores_left[i] * 100
-                    confidence_right = scores_right[j] * 100
-                    
-                    if abs(confidence_left - confidence_right) < 20:
-                        
-                        depth = find_depth(left_circle, right_circle, frame_right_rectified, frame_left_rectified, baseline, focal_length, alpha)
+            current_time = time.time()
+            if current_time - last_print_time >= 1.5:
+                timeprint = True
 
-                        u, v = left_circle
-                        pixel_size = 2 * depth * np.tan(np.radians(alpha / 2)) / width
-                        x = (u - (imW/2)) * pixel_size - 22
-                        y = -(v - (imH/2)) * pixel_size + 16
-                        z = round(depth, 1)
-                        coords_text = f"Coords: ({x:.1f}, {y:.1f}, {z:.1f})"
+            # If timeprint is true, update the coordinates
+            if timeprint:
+                point_counter = 1
+                last_coords_texts = []  # Reset the stored coordinates
+                for i in range(len(circles_left)-1, -1, -1):
+                    left_circle = circles_left[i]
+                    for j in range(len(circles_right)-1, -1, -1):
+                        right_circle = circles_right[j]
 
-                        # Display the first match on the image
-                        if not first_match_displayed:
-                            cv.putText(frame_left_rectified, coords_text, (50,50), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                            cv.putText(frame_right_rectified, coords_text, (50,50), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                            first_match_displayed = True  # Set the flag to true after displaying the first match
+                        confidence_left = scores_left[i] * 100
+                        confidence_right = scores_right[j] * 100
 
-                        if timeprint:
+                        if abs(confidence_left - confidence_right) < 20:
+
+                            depth = find_depth(left_circle, right_circle, frame_right_rectified, frame_left_rectified, baseline, focal_length, alpha)
+
+                            u, v = left_circle
+                            pixel_size = 2 * depth * np.tan(np.radians(alpha / 2)) / width
+                            x = (u - (imW/2)) * pixel_size - 22
+                            y = -(v - (imH/2)) * pixel_size + 16
+                            z = round(depth, 1)
+                            coords_text = f"Coords: ({x:.1f}, {y:.1f}, {z:.1f})"
+
+                            # Store the coordinates to be displayed later
+                            last_coords_texts.append(coords_text)
+
+                            # Print the coordinates and confidence
                             print(f"Point {point_counter}: Coords: ({x:.1f}, {y:.1f}, {z:.1f}), Confidence Left: {confidence_left:.1f}%, Confidence Right: {confidence_right:.1f}%")
-                            last_print_time = current_time  
                             point_counter += 1
 
-                        
-                        circles_left.pop(i)
-                        circles_right.pop(j)
-                        break  
-            timeprint = False
+                            circles_left.pop(i)
+                            circles_right.pop(j)
+                            break
+
+                last_print_time = current_time
+                timeprint = False  # Reset the flag after updating
+
+        # Display the last known coordinates continuously on every frame
+    for index, coords_text in enumerate(last_coords_texts):
+        # Adjust the vertical position for each set of coordinates
+        cv.putText(frame_left_rectified, coords_text, (50, 50 + index * 15), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv.putText(frame_right_rectified, coords_text, (50, 50 + index * 15), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
 
 
     cv.imshow("Frame Left", frame_left_rectified)
     cv.imshow("Frame Right", frame_right_rectified)
     
     k = cv.waitKey(5)
+    key = cv.waitKey(1) & 0xFF
+    if key == ord('v'):
+        if not recording:
+            # Start recording
+            timestamp = time.strftime("%Y%m%d-%H%M%S")
+            out = cv.VideoWriter(f'output_{timestamp}.mp4', 
+                                 cv.VideoWriter_fourcc(*'mp4v'),  # MP4 codec
+                                 20.0, (imW, imH))
+            print("Recording started...")
+            recording = True
+        else:
+            # Stop recording
+            out.release()
+            print("Recording stopped.")
+            recording = False
+
+    # Write the frame to the video file if recording
+    if recording and out is not None:
+        out.write(frame_left_rectified)
     if k == ord('s'): # wait for 's' key to save and exit
         cv.imwrite('CameraCalibration-main/test/LC/img' + str(num) + '.png', frame_left_rectified)
         cv.imwrite('CameraCalibration-main/test/RC/img' + str(num) + '.png', frame_right_rectified)
