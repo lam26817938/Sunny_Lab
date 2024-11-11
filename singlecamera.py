@@ -1,7 +1,12 @@
 import numpy as np
 import cv2 as cv
 import os, time
+import serial
 from tensorflow.lite.python.interpreter import Interpreter
+
+using_arduino=True
+if using_arduino:
+    arduino = serial.Serial(port='/dev/ttyACM0', baudrate=9600, timeout=.1)
 
 # Load the model and label map
 CWD_PATH = os.getcwd()
@@ -177,6 +182,9 @@ while cap.isOpened():
         if detected_points:
             print("Detected points:")
             for point in detected_points:
+                if using_arduino:
+                    message = f"C:{point['confidence']}%, Distance: {point['distance']} cm, Angle: {point['angle']}\n"
+                    arduino.write(message.encode())
                 print(f"Confidence: {point['confidence']}%, Distance: {point['distance']} cm, Angle: {point['angle']} degrees")
         else:
             print("No objects detected.")
