@@ -186,7 +186,7 @@ while cap.isOpened():
                 if using_arduino:
                     if point['confidence']>m:
                         m = point['confidence']
-                        message = f"C:{point['confidence']}%, Distance: {point['distance']} cm, Angle: {point['angle']}\n"
+                        message = f"C:{point['confidence']},D:{point['distance']},A:{point['angle']}\n"
                     arduino.write(message.encode())
                 print(f"Confidence: {point['confidence']}%, Distance: {point['distance']} cm, Angle: {point['angle']} degrees")
             if m:
