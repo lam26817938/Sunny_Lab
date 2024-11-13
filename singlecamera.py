@@ -181,12 +181,16 @@ while cap.isOpened():
     if current_time - last_print_time >= 1.0:
         if detected_points:
             print("Detected points:")
+            m=0
             for point in detected_points:
                 if using_arduino:
-                    message = f"C:{point['confidence']}%, Distance: {point['distance']} cm, Angle: {point['angle']}\n"
+                    if point['confidence']>m:
+                        m = point['confidence']
+                        message = f"C:{point['confidence']}%, Distance: {point['distance']} cm, Angle: {point['angle']}\n"
                     arduino.write(message.encode())
                 print(f"Confidence: {point['confidence']}%, Distance: {point['distance']} cm, Angle: {point['angle']} degrees")
-        else:
+            if m:
+                arduino.write(message.encode())
             print("No objects detected.")
         last_print_time = current_time
 
