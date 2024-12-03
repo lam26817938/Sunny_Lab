@@ -179,6 +179,10 @@ while cap.isOpened():
             cv.putText(frame, label, (dxmin, dymin - 10), cv.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
     if current_time - last_print_time >= 1.0:
+        '''
+        todo:
+        Set a range based on the target density to identify the most densely populated target center location.
+        '''
         if detected_points:
             print("Detected points:")
             m=0
